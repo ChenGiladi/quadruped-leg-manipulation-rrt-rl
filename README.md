@@ -10,7 +10,9 @@ and supplementary video assets needed to reproduce the experiments reported
 in the paper.
 
 The manuscript itself is **not** in this repository — it is hosted by the
-journal.
+journal. The canonical repository URL referenced from the paper's Data
+Availability Statement is
+<https://github.com/ChenGiladi/quadruped-leg-manipulation-rrt-rl>.
 
 ## Repository layout
 
