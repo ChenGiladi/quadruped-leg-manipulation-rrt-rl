@@ -2,12 +2,15 @@
 
 Reproducibility package for the MDPI *Robotics* manuscript by Yogev Attias and
 Chen Giladi (corresponding author). The framework couples an RRT global path
-planner (MATLAB, Robotics System Toolbox) with a Proximal Policy Optimization
-(PPO) controller for leg-based pushing motions (Python, Stable-Baselines3),
-both driving a Unitree Go1 quadruped in a CoppeliaSim/MuJoCo physics
-simulator. This repository contains the code, training data, trained policy
-and supplementary video assets needed to reproduce the experiments reported
-in the paper.
+planner with a Proximal Policy Optimization (PPO) controller for leg-based
+pushing motions, both driving a Unitree Go1 quadruped in a CoppeliaSim/MuJoCo
+physics simulator. The planner ships in two interchangeable implementations
+— a MATLAB version using the Robotics System and Navigation Toolboxes, and
+a pure-Python RRT\* port (inspired by [PythonRobotics](https://github.com/AtsushiSakai/PythonRobotics))
+that makes MATLAB optional. The PPO controller is implemented in Python with
+Stable-Baselines3. This repository contains the code, training data, trained
+policy and supplementary video assets needed to reproduce the experiments
+reported in the paper.
 
 The manuscript itself is **not** in this repository — it is hosted by the
 journal. The canonical repository URL referenced from the paper's Data
@@ -19,8 +22,10 @@ Availability Statement is
 ```
 code/
   matlab/      RRT global planner, smoothing, footprint adaptation, occupancy map
+               (optional — equivalent functionality is in python/rrt_planner.py)
   python/      Gym environment, PPO training/inference, ZMQ bridge to CoppeliaSim,
-               figure-regeneration script
+               figure-regeneration script, and a pure-Python RRT* planner
+               (rrt_planner.py) that replaces the MATLAB planner
   lua/         CoppeliaSim per-object child scripts (cube, Spot/Go1)
   scenes/      CoppeliaSim .ttt scene files (RoboDog_RRT, RoboDog_Learning_Push)
 data/
@@ -38,16 +43,16 @@ videos/
 
 ## Installation
 
-The framework spans three components — CoppeliaSim (simulator), MATLAB
-(planner) and Python (RL controller) — and each must be installed
-separately. The steps below were validated on Windows 10 and reproduce on
-Ubuntu 22.04 as well.
+The framework spans two required components — CoppeliaSim (simulator) and
+Python (planner + RL controller) — plus one optional component, MATLAB,
+which is interchangeable with the bundled Python planner. The steps below
+were validated on Windows 10 and reproduce on Ubuntu 22.04 as well.
 
 | Component | Version | Source |
 |---|---|---|
 | Python | 3.10.11 | <https://www.python.org/downloads/release/python-31011/> |
 | CoppeliaSim EDU | 4.5.x (MuJoCo engine) | <https://www.coppeliarobotics.com/downloads> |
-| MATLAB | R2023a or newer | <https://www.mathworks.com/downloads/> |
+| MATLAB *(optional)* | R2023a or newer | <https://www.mathworks.com/downloads/> |
 
 ### 1. Clone the repository
 
@@ -106,9 +111,15 @@ print('SB3', stable_baselines3.__version__, '| Gym', gym.__version__, \
    RRT path-following demo or `RoboDog_Learning_Push.ttt` for the PPO
    pushing task) and press **Start** to launch the simulation.
 
-### 4. MATLAB
+### 4. MATLAB *(optional — only needed if you want the original MATLAB planner)*
 
-Open MATLAB R2023a or newer. The RRT planner requires two add-on toolboxes:
+The repository ships with two interchangeable RRT planners — a Python one
+(`code/python/rrt_planner.py`, default) and the original MATLAB one
+(`code/matlab/RoboDog_RRT_Planner.m`). If you do not have MATLAB you can
+skip this section entirely and use the Python planner.
+
+If you do want to run the MATLAB planner, open MATLAB R2023a or newer. The
+planner requires two add-on toolboxes:
 
 * **Robotics System Toolbox** — used by `plannerRRT`, `validatorOccupancyMap`,
   `occupancyMap` in `code/matlab/RoboDog_RRT_Planner.m`.
@@ -121,9 +132,25 @@ and you are ready to run the planner scripts.
 
 ## Reproducing the main results
 
-1. **Plan an RRT path (MATLAB).** Open `code/matlab/RoboDog_RRT_Planner.m`,
-   adjust `start` / `goal` if desired, run. The script writes
-   `data/RRT_Data.xlsx`, which the CoppeliaSim side reads.
+1. **Plan an RRT path.** Pick *one* of the two interchangeable planners
+   below. Both write the same `data/RRT_Data.xlsx` schema, so step 3 works
+   the same way regardless of which one you ran.
+
+   * **Python (default — no MATLAB needed):**
+     ```bash
+     python code/python/rrt_planner.py                 # uses MATLAB defaults
+     python code/python/rrt_planner.py --plot          # also render the path
+     python code/python/rrt_planner.py \
+            --start 4.2030 23.2024 1.5708 \
+            --goal  10     12     1.5708 --seed 100
+     ```
+     This is an RRT\* + shortcut + cubic-spline smoother (inspired by
+     [PythonRobotics](https://github.com/AtsushiSakai/PythonRobotics)) on
+     the same 60×60 occupancy map as the MATLAB version.
+
+   * **MATLAB (original, optional):** open
+     `code/matlab/RoboDog_RRT_Planner.m`, adjust `start` / `goal` if
+     desired, run. Requires the Robotics System and Navigation Toolboxes.
 
 2. **Launch the simulator.** Open `code/scenes/RoboDog_RRT.ttt` (for RRT
    path-following) or `code/scenes/RoboDog_Learning_Push.ttt` (for the PPO
@@ -133,7 +160,8 @@ and you are ready to run the planner scripts.
    * Inference with the trained policy:
      `python code/python/run_rrt_in_coppeliasim.py` after loading
      `models/best_model8800.zip` (see `models/README.md` for the exact load
-     snippet).
+     snippet). Pass `--xlsx <path>` to override the default
+     `data/RRT_Data.xlsx`.
    * Retrain from scratch: `python code/python/learning_rl_push.py` — uses
      `environment_rl_push.py` as the Gym environment.
 

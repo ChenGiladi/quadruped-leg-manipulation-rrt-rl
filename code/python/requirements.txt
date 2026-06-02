@@ -23,8 +23,9 @@ scipy>=1.10
 # file or comment out the `import visdom` line in the env scripts if not used)
 visdom>=0.2.4
 
-# Used by run_rrt_in_coppeliasim.py (RRT-data ingestion)
+# Used by run_rrt_in_coppeliasim.py (RRT-data ingestion) and rrt_planner.py (xlsx output)
 pandas>=1.5
+openpyxl>=3.1
 
 # Used by regenerate_r2_figures.py (figure 17 video-gallery rendering)
 Pillow>=9.5
