@@ -1,4 +1,4 @@
-function w = map()
+function w = Coppelia_map()
 w=zeros(60,60);
 for i=1:60
     for j=1:60
