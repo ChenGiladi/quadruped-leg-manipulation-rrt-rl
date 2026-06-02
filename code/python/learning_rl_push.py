@@ -4,13 +4,13 @@ Training, inference, and mass-robustness sweep for the box-pushing PPO agent.
 USAGE
 -----
     # Train from scratch (1M steps, default)
-    python Learning_RL_Push.py --mode train
+    python learning_rl_push.py --mode train
 
     # Replay the published agent (../models/best_model8800.zip)
-    python Learning_RL_Push.py --mode infer --model ../models/best_model8800.zip --episodes 3
+    python learning_rl_push.py --mode infer --model ../models/best_model8800.zip --episodes 3
 
     # Reproduce Figure 17 data: sweep box mass, log mean angular/position error
-    python Learning_RL_Push.py --mode sweep --model ../models/best_model8800.zip \
+    python learning_rl_push.py --mode sweep --model ../models/best_model8800.zip \
         --masses 0,200,300,400,500,600,700,800
 
 Required environment variable:
@@ -30,7 +30,7 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.results_plotter import load_results, ts2xy
 
-from Envronment_RL_Push import RobotModelEnv
+from environment_rl_push import RobotModelEnv
 
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "True")
 
@@ -89,7 +89,7 @@ def _run_episode(model, env):
         obs, reward, done, info = env.step(action)
         total_reward += float(reward)
         n_steps += 1
-        # The Envronment_RL_Push.RobotModelEnv exposes the current corner
+        # The environment_rl_push.RobotModelEnv exposes the current corner
         # offsets via self.dist_*; pull whatever it surfaces in `info` if
         # present, otherwise read off the env at episode end.
     final_ang = float(np.mean(np.abs(getattr(env, "angle_err_log", [0.0]))))

@@ -33,7 +33,7 @@ pip install stable-baselines3==1.8.0 gym==0.21.0 torch==2.0.1 numpy==1.23.5
 
 ```python
 from stable_baselines3 import PPO
-from EnvronmentRLyogev_Year_1 import RobotModelEnv  # see ../code/python/
+from environment_rl_push import RobotModelEnv  # see ../code/python/
 
 env = RobotModelEnv()
 model = PPO.load("best_model8800.zip", env=env)
@@ -55,4 +55,4 @@ Saved by Yogev Attias on 2024-01-31 from a successful PPO training run on the
 quadruped box-pushing task. The numeric suffix `8800` is the training-step
 index from which the best-mean-reward checkpoint was emitted by the
 `SaveOnBestTrainingRewardCallback` defined in
-`../code/python/Learning_RL_Push.py`.
+`../code/python/learning_rl_push.py`.

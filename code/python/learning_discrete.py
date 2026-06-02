@@ -11,7 +11,7 @@
 # from stable_baselines3.common.monitor import Monitor
 # from stable_baselines3.common.results_plotter import load_results, ts2xy
 # from gymnasium.spaces.box import Box as GymnasiumBox
-# from EnvronmentRLyogev import RobotModelEnv
+# from environment_discrete import RobotModelEnv
 import os
 import numpy as np
 from stable_baselines3 import PPO  # Import PPO
@@ -19,7 +19,7 @@ from stable_baselines3.common.callbacks import CallbackList, BaseCallback
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.results_plotter import load_results, ts2xy
-from EnvronmentRLyogev_Year_1 import RobotModelEnv
+from environment_discrete import RobotModelEnv
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
