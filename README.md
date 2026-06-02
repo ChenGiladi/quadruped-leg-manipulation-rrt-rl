@@ -81,17 +81,6 @@ required exactly — they are the versions baked into the saved policy.
    python regenerate_r2_figures.py --figure bezier_panelb
    ```
 
-## Figure ↔ source map
-
-| Figure | Source script / asset |
-|---|---|
-| Fig. 10 — System architecture | TikZ in manuscript (no external script) |
-| Fig. 16 — Mass-robustness scatter | `code/python/regenerate_r2_figures.py --figure r2` |
-| Fig. 17a — Straight-line push gallery | `regenerate_r2_figures.py --figure straight_gallery` ← `videos/03_Straight_Line_Box_Pushing.mp4` |
-| Fig. 17b — Bézier push gallery | `regenerate_r2_figures.py --figure bezier_panelb` ← `videos/02_Bezier_Trajectory_Box_Pushing.mp4` |
-| Fig. 18b — Box-corner XY trajectory | Authoritative PNG in manuscript (data: `data/Cube.csv`) |
-| Fig. 21 — Sinusoidal fit | `regenerate_r2_figures.py --figure sine` ← `data/sine_wave/*.npz` |
-
 ## Citation
 
 ```
