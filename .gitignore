@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.env
+
+# MATLAB
+*.asv
+*.m~
+
+# CoppeliaSim runtime
+*.ttt~
+*.simlog
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local experiment scratch
+results/
+runs/
+tb_logs/
+checkpoints/
+*.log
+
+# Never commit manuscript artefacts — this repo is reproducibility-only
+manuscript.*
+*.tex
+*.bbl
+*.aux
+*.bcf
+*.run.xml
+*.synctex.gz
+cover_letter*
+references.bib

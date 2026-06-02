@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, data, or trained policy, please cite the associated paper."
+title: "A Hybrid RRT-PPO Framework for Leg-Based Object Manipulation of Quadruped Robots — reproducibility package"
+authors:
+  - family-names: Attias
+    given-names: Yogev
+  - family-names: Giladi
+    given-names: Chen
+    email: chengi1@sce.ac.il
+    affiliation: "Department of Mechanical Engineering, Sami Shamoon College of Engineering, Ashdod, Israel"
+license: MIT
+preferred-citation:
+  type: article
+  title: "A Hybrid RRT-PPO Framework for Leg-Based Object Manipulation of Quadruped Robots"
+  authors:
+    - family-names: Attias
+      given-names: Yogev
+    - family-names: Giladi
+      given-names: Chen
+  journal: Robotics
+  year: 2026
