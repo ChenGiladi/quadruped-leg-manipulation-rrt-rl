@@ -1,6 +1,6 @@
 # A Hybrid RRT–PPO Framework for Leg-Based Object Manipulation of Quadruped Robots
 
-Reproducibility package for the MDPI *Robotics* manuscript by Yogev Attias and
+Reproducibility package for the MDPI *Machines* manuscript by Yogev Attias and
 Chen Giladi (corresponding author). The framework couples an RRT global path
 planner with a Proximal Policy Optimization (PPO) controller for leg-based
 pushing motions, both driving a Unitree Go1 quadruped in a CoppeliaSim/MuJoCo
@@ -179,7 +179,7 @@ and you are ready to run the planner scripts.
 @article{AttiasGiladi2026Go1,
   title   = {A Hybrid {RRT--PPO} Framework for Leg-Based Object Manipulation of Quadruped Robots},
   author  = {Attias, Yogev and Giladi, Chen},
-  journal = {Robotics},
+  journal = {Machines},
   year    = {2026},
   note    = {Submitted}
 }
