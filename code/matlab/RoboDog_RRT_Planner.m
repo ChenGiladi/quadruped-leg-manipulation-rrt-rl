@@ -22,7 +22,11 @@ options = optimizePathOptions;
 options.MinTurningRadius = 2;
 options.MaxPathStates = size(pthObj.States,1) * 3;
 options.ObstacleSafetyMargin = 0.75;
-optpath = optimizePath(pthObj.States,map,options);
+% Smooth with a collision re-verification fall-back (manuscript Section 3.2.1):
+% in open environments the first smoothed path is accepted as-is; in cluttered
+% environments the smoothing window is shrunk and the path refitted until the
+% densely re-sampled path is collision-free or it collapses to the raw polyline.
+optpath = smoothPathWithReverification(pthObj.States,map,sv,options);
 pose_data=zeros(2,4,max(size(pthObj.States)));
 record_rac = zeros(2,5,max(size(pthObj.States)));
 %% Visualize the results.

@@ -4,8 +4,9 @@ Python alternative to the MATLAB RRT planner (RoboDog_RRT_Planner.m).
 With this script, the path-planning side of the pipeline can be reproduced
 without MATLAB or the Robotics System / Navigation Toolbox: it builds the
 same 60x60 occupancy map as Coppelia_map.m, runs an RRT* on SE(2), smooths
-the result, and writes data/RRT_Data.xlsx in the column layout that
-run_rrt_in_coppeliasim.py consumes.
+the result (with a collision re-verification fall-back for cluttered maps,
+see reverify_smoothing), and writes data/RRT_Data.xlsx in the column layout
+that run_rrt_in_coppeliasim.py consumes.
 
 The RRT*/shortcut-smoothing structure is inspired by Atsushi Sakai's
 PythonRobotics library (https://github.com/AtsushiSakai/PythonRobotics,
@@ -190,19 +191,111 @@ def shortcut_smooth(grid, path, inflate=0.75, iters=300, seed=100):
     return np.array(pts)
 
 
-def densify_spline(path_xy, factor=3, min_states=30):
-    """Cubic-spline resample of (x, y) to roughly `factor x` the input length."""
-    from scipy.interpolate import CubicSpline
+def _arclength_param(path_xy):
+    """Cumulative chord length along the polyline (used to parametrise resamples)."""
     n_in = path_xy.shape[0]
-    n_out = max(n_in * factor, min_states)
     cum = np.zeros(n_in)
     for k in range(1, n_in):
         cum[k] = cum[k - 1] + math.hypot(path_xy[k, 0] - path_xy[k - 1, 0],
                                          path_xy[k, 1] - path_xy[k - 1, 1])
+    return cum
+
+
+def _spline_at(path_xy, cum, s):
+    """Cubic-spline (x, y) evaluated at arc-length stations `s`."""
+    from scipy.interpolate import CubicSpline
     cs_x = CubicSpline(cum, path_xy[:, 0])
     cs_y = CubicSpline(cum, path_xy[:, 1])
-    s = np.linspace(0.0, float(cum[-1]), n_out)
     return np.column_stack([cs_x(s), cs_y(s)])
+
+
+def _linear_at(path_xy, cum, s):
+    """Piecewise-linear (x, y) on the polyline at the same arc-length stations `s`.
+
+    Because the points lie exactly on the (collision-free) shortcut polyline,
+    this baseline is collision-free by construction and serves as the fall-back
+    the smoothing window collapses to when an obstacle cannot be cleared.
+    """
+    x = np.interp(s, cum, path_xy[:, 0])
+    y = np.interp(s, cum, path_xy[:, 1])
+    return np.column_stack([x, y])
+
+
+def densify_spline(path_xy, factor=3, min_states=30):
+    """Cubic-spline resample of (x, y) to roughly `factor x` the input length."""
+    n_in = path_xy.shape[0]
+    n_out = max(n_in * factor, min_states)
+    cum = _arclength_param(path_xy)
+    s = np.linspace(0.0, float(cum[-1]), n_out)
+    return _spline_at(path_xy, cum, s)
+
+
+def reverify_smoothing(grid, short_path, inflate=0.75, factor=3, min_states=30,
+                       max_passes=24, window_frac=0.08):
+    """Path-smoothing re-verification fall-back (manuscript Section 3.2.1, A.8).
+
+    The shortcut polyline ``short_path`` is collision-free by construction, but
+    the cubic-spline smoothing in :func:`densify_spline` can bow a segment into
+    an obstacle in cluttered environments. This routine makes the fall-back
+    promised in the manuscript explicit:
+
+    1. The smoothed path is densely re-sampled (spline at arc-length stations).
+    2. Every sample -- and every sub-segment between samples -- is tested
+       against the inflated obstacle map.
+    3. Where a sample is in collision the smoothing window is shrunk *locally*:
+       the spline is pulled back toward the collision-free shortcut polyline in
+       a neighbourhood of that sample (per-station blend weight ``alpha`` -> 0)
+       and the path is refitted.
+    4. Steps 1-3 repeat until the re-sampled path is collision-free or the
+       window collapses back to the raw RRT polyline.
+
+    In the open environments reported in the paper the spline is already clear,
+    so this returns on the first pass with feasibility preserved by construction
+    (``info['engaged'] is False``).
+
+    Returns ``(states_xy, info)``.
+    """
+    n_out = max(short_path.shape[0] * factor, min_states)
+    cum = _arclength_param(short_path)
+    s = np.linspace(0.0, float(cum[-1]), n_out)
+    spline = _spline_at(short_path, cum, s)   # alpha = 1 : full smoothing
+    linear = _linear_at(short_path, cum, s)   # alpha = 0 : raw collision-free polyline
+    alpha = np.ones(n_out)
+    win = max(1, int(round(window_frac * n_out)))
+
+    def collisions(pts):
+        bad = set()
+        for i in range(n_out):
+            if not is_point_free(grid, pts[i, 0], pts[i, 1], inflate):
+                bad.add(i)
+        for i in range(n_out - 1):
+            if not segment_free(grid, pts[i], pts[i + 1], inflate=inflate):
+                bad.add(i)
+                bad.add(i + 1)
+        return sorted(bad)
+
+    for p in range(max_passes):
+        blended = alpha[:, None] * spline + (1.0 - alpha[:, None]) * linear
+        bad = collisions(blended)
+        if not bad:
+            return blended, {"engaged": p > 0, "passes": p, "collapsed": False,
+                             "max_pullback": float(1.0 - alpha.min())}
+        for i in bad:
+            lo, hi = max(0, i - win), min(n_out, i + win + 1)
+            alpha[lo:hi] *= 0.5
+        alpha[alpha < 1e-3] = 0.0
+        if not np.any(alpha):
+            # window fully collapsed -> raw collision-free polyline
+            return linear, {"engaged": True, "passes": p + 1, "collapsed": True,
+                            "max_pullback": 1.0}
+
+    # passes exhausted: prefer the refined blend, else the guaranteed-safe polyline
+    blended = alpha[:, None] * spline + (1.0 - alpha[:, None]) * linear
+    if collisions(blended):
+        return linear, {"engaged": True, "passes": max_passes, "collapsed": True,
+                        "max_pullback": 1.0}
+    return blended, {"engaged": True, "passes": max_passes, "collapsed": False,
+                     "max_pullback": float(1.0 - alpha.min())}
 
 
 def headings_from_path(path_xy, start_yaw, goal_yaw):
@@ -301,8 +394,20 @@ def main():
     short = shortcut_smooth(grid, raw, inflate=args.inflate, seed=args.seed)
     print(f"[plan] after shortcutting: {short.shape[0]} states")
 
-    dense = densify_spline(short, factor=3)
-    print(f"[plan] after spline      : {dense.shape[0]} states")
+    dense, smooth_info = reverify_smoothing(grid, short, inflate=args.inflate,
+                                            factor=3)
+    if not smooth_info["engaged"]:
+        print(f"[plan] after spline      : {dense.shape[0]} states "
+              f"(smoothing feasible by construction; re-verification needed no pull-back)")
+    elif smooth_info["collapsed"]:
+        print(f"[plan] after spline      : {dense.shape[0]} states "
+              f"(re-verification engaged over {smooth_info['passes']} pass(es); "
+              f"window collapsed locally to the raw RRT polyline to clear an obstacle)")
+    else:
+        print(f"[plan] after spline      : {dense.shape[0]} states "
+              f"(re-verification engaged over {smooth_info['passes']} pass(es); "
+              f"smoothing window shrunk locally, max pull-back "
+              f"{smooth_info['max_pullback']:.2f})")
 
     yaws = headings_from_path(dense, start[2], goal[2])
     states = np.column_stack([dense, yaws])
