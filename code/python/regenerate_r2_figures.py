@@ -52,6 +52,7 @@ import subprocess
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
@@ -168,7 +169,7 @@ TRANSIENT_SHADE = "#f2f2f2"
 SINE_DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "sine_wave"
 
 
-def _sine_panel(ax, npz_path, panel_title, xlim, ylim):
+def _sine_panel(ax, npz_path, panel_title, xlim, ylim, panel_label=None):
     d = np.load(npz_path)
     x = d["x"].astype(float)
     y = d["y"].astype(float)
@@ -205,6 +206,14 @@ def _sine_panel(ax, npz_path, panel_title, xlim, ylim):
     ax.set_xlabel(r"Time $t$ [s]", fontsize=10)
     ax.set_ylabel(r"Box coordinate $q(t)$ [sim. units]", fontsize=10)
     ax.set_title(panel_title, fontsize=10)
+    if panel_label:
+        # Journal-style subfigure label, top-left, outside the axes frame
+        ax.text(0.0, 1.045, panel_label, transform=ax.transAxes,
+                fontsize=11, fontweight="bold", family="serif",
+                ha="left", va="bottom")
+    # Thousands separators on the time axis (journal typographic requirement)
+    ax.xaxis.set_major_formatter(
+        mticker.FuncFormatter(lambda v, _pos: f"{int(round(v)):,}"))
     ax.tick_params(axis="both", labelsize=9)
     ax.grid(True, axis="y", linestyle="-", color="#dddddd", linewidth=0.5, alpha=0.9)
     for side in ("top", "right"):
@@ -251,9 +260,11 @@ def render_sine(outdir: Path):
 
     fig, axes = plt.subplots(1, 2, figsize=(9.6, 4.0), constrained_layout=True)
     _sine_panel(axes[0], SINE_DATA_DIR / "sine_curve_l.npz",
-                "Left-circle pushing (counterclockwise)", xlim, ylim)
+                "Left-circle pushing (counterclockwise)", xlim, ylim,
+                panel_label="(a)")
     _sine_panel(axes[1], SINE_DATA_DIR / "sine_curve_r.npz",
-                "Right-circle pushing (clockwise)", xlim, ylim)
+                "Right-circle pushing (clockwise)", xlim, ylim,
+                panel_label="(b)")
 
     # Single, shared, unboxed legend below the panels
     handles, labels = axes[0].get_legend_handles_labels()
